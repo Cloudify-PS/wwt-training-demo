@@ -1,14 +1,18 @@
 tosca_definitions_version: cloudify_dsl_1_3
 
+
 description: >
   This blueprint creates infrastructure on AWS using Terraform.
   Then runs ansible playbook that installs an application on top of it.
+
+
 imports:
   - https://cloudify.co/spec/cloudify/5.1.0/types.yaml
   - plugin:cloudify-terraform-plugin?version= >=0.15.0
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-ansible-plugin
   - includes/hello-world-ansible.yaml
+
 
 inputs:
 
@@ -31,7 +35,7 @@ inputs:
 
   aws_zone_name:
     type: string
-    default: { concat: [ { get_input: aws_region_name }, 'b' ] }
+    default: { concat: [ { get_input: aws_region_name }, 'd' ] }
 
   agent_key_name:
     type: string
@@ -87,8 +91,22 @@ node_templates:
           inputs:
             store_private_key_material: true
 
+
+groups:
+  vm_and_app:
+    members: [vm, hello-world]
+
+
+policies:
+  scale_policy:
+    type: cloudify.policies.scaling
+    properties:
+      default_instances: 1
+    targets: [vm_and_app]
+
+
 outputs:
 
   application_endpoint:
    description: The external endpoint of the application.
-   value: { concat: [ 'http://', { get_attribute: [ vm, resources, eip, instances, 0, attributes, public_ip ] }, ':80' ] }
+   value: { concat: [ 'http://', { get_attribute: [ vm, ip ] } ] }
