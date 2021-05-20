@@ -1,0 +1,121 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+
+description: >
+  This blueprint installs an application using Cloudify on AWS.
+
+
+imports:
+  - https://cloudify.co/spec/cloudify/5.1.0/types.yaml
+  - plugin:cloudify-aws-plugin
+  - plugin:cloudify-utilities-plugin?version= >=1.22.1
+
+
+inputs:
+
+  aws_region_name:
+    type: string
+    description: The AWS region name, such as us-east-1 or us-west-1.
+    default: us-east-1
+    constraints:
+      - valid_values:
+        - us-east-1
+        - us-west-1
+        - us-west-2
+        - ca-central-1
+        - eu-west-1
+
+  aws_zone_name:
+    type: string
+    description: The availability zone in the AWS Region.
+    default: { concat: [ { get_input: aws_region_name }, 'b' ] }
+
+  agent_user:
+    description: >
+      The username of the agent running on the instance created from the image.
+    default: 'ubuntu'
+
+  agent_key_name:
+    type: string
+    default: agent_key
+
+
+dsl_definitions:
+
+  client_config: &client_config
+    aws_access_key_id: { get_secret: aws_access_key_id }
+    aws_secret_access_key: { get_secret: aws_secret_access_key }
+    region_name: { get_input: aws_region_name }
+
+
+node_templates:
+
+  hello_world_keypair:
+    type: cloudify.nodes.aws.ec2.Keypair
+    properties:
+      client_config: *client_config
+      resource_config:
+        KeyName: { get_input: agent_key_name }
+        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: agent_key
+
+  vm:
+    type: cloudify.nodes.aws.CloudFormation.Stack
+    properties:
+      client_config: *client_config
+      resource_config:
+        kwargs:
+          StackName: Hello-World-Sample-Stack
+          Parameters:
+          - ParameterKey: InstanceType
+            ParameterValue: m1.small
+          - ParameterKey: KeyName
+            ParameterValue: { get_input: agent_key_name }
+          - ParameterKey: VpcCIDR
+            ParameterValue: 10.10.0.0/16
+          - ParameterKey: SubnetCIDR
+            ParameterValue: 10.10.4.0/24
+          - ParameterKey: AvailabilityZone
+            ParameterValue: { get_input: aws_zone_name }
+          # TemplateURL: https://hello-world-cf-example.s3-eu-west-1.amazonaws.com/template.yaml
+          TemplateBody: { get_secret: hello-world-cf-example-template }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: hello_world_keypair
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        poststart:
+          executor: central_deployment_agent
+          implementation: scripts/expose_ip.py
+
+  agent_key:
+      type: cloudify.keys.nodes.RSAKey
+      properties:
+        resource_config:
+          key_name: { get_input: agent_key_name }
+          openssh_format: true
+        use_secret_store: true
+        use_secrets_if_exist: true
+      interfaces:
+        cloudify.interfaces.lifecycle:
+          create:
+            implementation: keys.cloudify_ssh_key.operations.create
+            inputs:
+              store_private_key_material: true
+
+
+capabilities:
+
+  ip:
+    description: The public IP address of the VM.
+    value: { get_attribute: [ vm, ip ] }
+
+  agent_user:
+    description: The username for logging into the VM.
+    value: { get_input: agent_user }
+
+  agent_key:
+    description: The private key for loggin into the VM.
+    value: { get_attribute: [ agent_key, private_key_export ] }

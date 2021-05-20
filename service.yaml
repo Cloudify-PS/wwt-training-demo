@@ -1,0 +1,80 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+
+description: >
+  The blueprint first installs the VM in a separate deployment
+  to connect it then with the web application installed using
+  the Ansible playbook here.
+
+
+imports:
+  - https://cloudify.co/spec/cloudify/5.1.0/types.yaml
+  - includes/hello-world-ansible.yaml
+
+
+inputs:
+
+  infrastructure_blueprint_id:
+    type: string
+    default: aws-terraform-infra
+    constraints:
+      - valid_values:
+        - aws-infra
+        - aws-terraform-infra
+        - aws-cloudformation-infra
+
+  agent_user:
+    description: >
+      The username of the agent running on the instance created from the image.
+    type: string
+    default: 'ubuntu'
+
+  aws_region_name:
+    type: string
+    default: us-east-1
+    constraints:
+      - valid_values:
+        - us-east-1
+        - us-west-1
+        - us-west-2
+        - ca-central-1
+        - eu-west-1
+
+  aws_zone_name:
+    type: string
+    default: { concat: [ { get_input: aws_region_name }, 'd' ] }
+
+  agent_key_name:
+    type: string
+    default: agent_key
+
+
+node_templates:
+
+  vm:
+    type: cloudify.nodes.ServiceComponent
+    properties:
+      resource_config:
+        blueprint:
+          id: { get_input: infrastructure_blueprint_id }
+          external_resource: true
+        deployment:
+          auto_inc_suffix: true
+          inputs:
+            agent_user: { get_input: agent_user }
+            aws_region_name: { get_input: aws_region_name }
+            aws_zone_name: { get_input: aws_zone_name }
+            agent_key_name: { get_input: agent_key_name }
+
+
+groups:
+  vm_and_app:
+    members: [vm, hello-world]
+
+
+policies:
+  scale_policy:
+    type: cloudify.policies.scaling
+    properties:
+      default_instances: 1
+    targets: [vm_and_app]
