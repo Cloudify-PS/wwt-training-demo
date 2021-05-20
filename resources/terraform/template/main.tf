@@ -1,94 +1,93 @@
 terraform {
+  required_version = ">= 0.14.0"
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "3.10.0"
-    }
-    template = {
-      source = "hashicorp/template"
-      version = "2.1.2"
+    openstack = {
+      source  = "terraform-provider-openstack/openstack"
+      version = "~> 1.35.0"
     }
   }
 }
-# Specify the provider and access details
-provider "aws" {
-  region = var.aws_region
-  access_key = var.access_key
-  secret_key = var.secret_key
+
+# Configure the OpenStack Provider
+provider "openstack" {
+  user_name           = var.openstack_username 
+  tenant_name         = var.openstack_tenant_name
+  password            = var.openstack_password
+  auth_url            = var.openstack_auth_url
+  region              = var.openstack_region
+  user_domain_name    = var.openstack_user_domain_name
+  project_domain_name = var.openstack_project_domain_name
 }
 
-# Create a VPC
-resource "aws_vpc" "example_vpc" {
-  cidr_block = "10.10.0.0/16"
-  enable_dns_hostnames = true
+# Fetch an external network
+data "openstack_networking_network_v2" "external_network" {
+  name            = var.external_network_id
+  external        = "true"
 }
 
-resource "aws_internet_gateway" "example_gateway" {
-  vpc_id = aws_vpc.example_vpc.id
+data "openstack_networking_router_v2" "example_router" {
+  name = var.router_id
+}
+
+# Create a network
+resource "openstack_networking_network_v2" "example_network" {
+  name            = var.network_id
+  admin_state_up  = "true"
 }
 
 # Create a subnet to launch our instances into
-resource "aws_subnet" "example_subnet" {
-  vpc_id                  = aws_vpc.example_vpc.id
-  cidr_block              = "10.10.4.0/24"
-  map_public_ip_on_launch = false
-  availability_zone = var.aws_zone
+resource "openstack_networking_subnet_v2" "example_subnet" {
+  name              = var.subnet_id
+  network_id        = openstack_networking_network_v2.example_network.id
+  cidr              = "10.10.4.0/24"
 }
 
-resource "aws_route" "example_route" {
-  route_table_id = aws_vpc.example_vpc.default_route_table_id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id = aws_internet_gateway.example_gateway.id
+resource "openstack_networking_router_interface_v2" "example_subnet_router_interface" {
+  router_id = data.openstack_networking_router_v2.example_router.id
+  subnet_id = openstack_networking_subnet_v2.example_subnet.id
 }
 
 # Security group for our application.
-resource "aws_security_group" "example_security_group" {
+resource "openstack_networking_secgroup_v2" "example_security_group" {
   name        = "example_security_group"
   description = "Security group for example application"
-  vpc_id      = aws_vpc.example_vpc.id
+}
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.example_security_group.id
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 80
+  port_range_max    = 80
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.example_security_group.id
+}
+
+resource "openstack_networking_port_v2" "example_port" {
+  name           = "example_port"
+  network_id     = openstack_networking_network_v2.example_network.id
+  admin_state_up = "true"
+  
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.example_subnet.id
   }
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  security_group_ids = [openstack_networking_secgroup_v2.example_security_group.id]
+}
 
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 9990
-    to_port     = 9990
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 2375
-    to_port     = 2375
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # outbound internet access
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+resource "openstack_networking_floatingip_v2" "ip" {
+  pool    = data.openstack_networking_network_v2.external_network.name
+  port_id = openstack_networking_port_v2.example_port.id
 }
 
 variable "filename" {
@@ -111,34 +110,15 @@ EOF
   }
 }
 
-resource "aws_instance" "example_vm" {
-  # The connection block tells our provisioner how to
-  # communicate with the resource (instance)
-  connection {
-    # The default username for our AMI
-    user = var.admin_user
+resource "openstack_compute_instance_v2" "example_vm" {
+  name = "example_vm"
+  image_id = var.image_id
+  flavor_id = var.flavor_id
+  security_groups = [openstack_networking_secgroup_v2.example_security_group.name]
+
+  network {
+    port = openstack_networking_port_v2.example_port.id
   }
-
-  instance_type = "t2.micro"
-
-  tags = {
-    Name = "example-vm"
-  }
-
-  # Lookup the correct AMI based on the region
-  # we specified
-  ami = lookup(var.aws_amis, var.aws_region)
-
-  # Our Security group to allow HTTP and SSH access
-  vpc_security_group_ids = [aws_security_group.example_security_group.id]
-
-  # Connect to subnet
-  subnet_id = aws_subnet.example_subnet.id
 
   user_data =   data.template_file.template.rendered
-}
-
-resource "aws_eip" "eip" {
-  instance = aws_instance.example_vm.id
-  vpc      = true
 }

@@ -18,24 +18,35 @@ inputs:
     type: string
     default: 'ubuntu'
 
-  aws_region_name:
-    type: string
-    default: us-east-1
-    constraints:
-      - valid_values:
-        - us-east-1
-        - us-west-1
-        - us-west-2
-        - ca-central-1
-        - eu-west-1
-
-  aws_zone_name:
-    type: string
-    default: { concat: [ { get_input: aws_region_name }, 'b' ] }
-
   agent_key_name:
     type: string
     default: agent_key
+
+  external_network_id:
+    type: string
+    description: A network that provisions floating IPs.
+
+  external_router_id:
+    type: string
+    description: A router that provisions internet access.
+
+  image_id:
+    type: string
+    description: The UUID of an Ubuntu Trusty 14.04 image in your Openstack account.
+
+  flavor_id:
+    type: string
+    description: The UUID of small flavor in your Openstack account.
+
+  network_id:
+    type: string
+    description: A name for your new Openstack Network.
+    default: cloudify-hello-world-network
+
+  subnet_id:
+    type: string
+    description: A name for your new Openstack Subnet.
+    default: cloudify-hello-world-subnet
 
 
 node_templates:
@@ -53,10 +64,18 @@ node_templates:
         source:
           location: resources/terraform/template.zip
         variables:
-          access_key: { get_secret: aws_access_key_id }
-          secret_key: { get_secret: aws_secret_access_key }
-          aws_region: { get_input: aws_region_name }
-          aws_zone: { get_input: aws_zone_name }
+          openstack_username: { get_secret: openstack_username }
+          openstack_password: { get_secret: openstack_password }
+          openstack_tenant_name: { get_secret: openstack_tenant_name }
+          openstack_auth_url: { get_secret: openstack_auth_url }
+          openstack_region: { get_secret: openstack_region }
+          openstack_user_domain_name: { get_secret: openstack_user_domain_name }
+          openstack_project_domain_name: { get_secret: openstack_project_domain_name }
+          external_network_id: { get_input: external_network_id }
+          router_id: { get_input: external_router }
+          network_id: { get_input: network_id }
+          image_id: { get_input: image_id }
+          flavor_id: { get_input: flavor_id }
           admin_user: { get_input: agent_user }
           admin_key_public: { get_attribute: [agent_key, public_key_export] }
     relationships:

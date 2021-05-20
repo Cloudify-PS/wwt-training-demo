@@ -1,16 +1,6 @@
-variable "aws_region" {
-  type = string
-  description = "AWS region to launch servers."
-}
-
-variable "aws_zone" {
-  type = string
-  description = "AWS zone to create subnet."
-}
-
 variable "admin_user" {
   type = string
-  description = "Admin user for the AMI we're launching"
+  description = "Admin user for the image we're launching"
 }
 
 variable "admin_key_public" {
@@ -18,23 +8,53 @@ variable "admin_key_public" {
   description = "Public SSH key of admin user"
 }
 
-variable "access_key" {
+variable "openstack_username" {
   type = string
-  description = "Access key for AWS"
+  description = "Username to authenticate in Openstack."
 }
 
-variable "secret_key" {
+variable "openstack_password" {
   type = string
-  description = "Secret key for AWS"
+  description = "Password to authenticate in Openstack."
 }
 
-variable "aws_amis" {
-  type = map(string)
-  default = {
-    ca-central-1 = "ami-2e00bf4a"
-    us-east-1 = "ami-841f46ff"
-    us-west-1 = "ami-b2527ad2"
-    us-west-2 = "ami-718c6909"
-    eu-west-1 = "ami-1e749f67"
-  }
+variable "openstack_tenant_name" {
+  type = string
 }
+
+variable "openstack_auth_url" {
+  type = string
+}
+
+variable "openstack_region" {
+  type = string
+}
+
+variable "openstack_user_domain_name" {
+  type = string
+}
+
+variable "openstack_project_domain_name" {
+  type = string
+}
+
+variable "external_network_id" {
+  type = string
+}
+
+variable "router_id" {
+  type = string
+}
+
+variable "network_id" {
+  type = string
+}
+
+variable "image_id" {
+  type = string
+}
+
+variable "flavor_id" {
+  type = string
+}
+
