@@ -52,7 +52,7 @@ node_templates:
     properties:
       resource_config:
         source:
-          location: resources/terraform/template.zip
+          location: resources/template.zip
         variables:
           access_key: { get_secret: aws_access_key_id }
           secret_key: { get_secret: aws_secret_access_key }
@@ -68,7 +68,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         poststart:
-          implementation: scripts/terraform/expose_ip.py
+          implementation: scripts/expose_ip.py
           executor: central_deployment_agent
           inputs:
             ip: { get_attribute: [ SELF, resources, eip, instances, 0, attributes, public_ip ] }
@@ -101,4 +101,4 @@ capabilities:
 
   agent_key:
     description: The private key for loggin into the VM.
-    value: { get_attribute: [agent_key, private_key_export] }
+    value: { get_attribute: [ agent_key, private_key_export ] }

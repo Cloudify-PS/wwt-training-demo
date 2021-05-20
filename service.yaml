@@ -19,7 +19,9 @@ inputs:
     default: aws-terraform-infra
     constraints:
       - valid_values:
+        - aws-infra
         - aws-terraform-infra
+        - aws-cloudformation-infra
 
   agent_user:
     description: >
