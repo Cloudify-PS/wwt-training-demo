@@ -71,7 +71,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         poststart:
-          implementation: scripts/terraform/expose_ip.py
+          implementation: scripts/expose_ip.py
           executor: central_deployment_agent
           inputs:
             ip: { get_attribute: [ SELF, resources, eip, instances, 0, attributes, public_ip ] }
