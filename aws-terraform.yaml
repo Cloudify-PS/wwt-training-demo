@@ -103,10 +103,3 @@ policies:
     properties:
       default_instances: 1
     targets: [vm_and_app]
-
-
-outputs:
-
-  application_endpoint:
-   description: The external endpoint of the application.
-   value: { concat: [ 'http://', { get_attribute: [ vm, ip ] } ] }
