@@ -40,3 +40,10 @@ node_templates:
               inputs:
                 playbook_path: resources/ansible/stop.yaml
                 sources: *sources
+
+
+capabilities:
+
+  application_endpoint:
+   description: The external endpoint of the application.
+   value: { concat: [ 'http://', { get_attribute: [ vm, ip ] } ] }

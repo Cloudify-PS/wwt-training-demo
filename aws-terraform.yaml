@@ -67,7 +67,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         poststart:
-          implementation: scripts/terraform/expose_ip.py
+          implementation: scripts/expose_ip.py
           executor: central_deployment_agent
           inputs:
             ip: { get_attribute: [ SELF, resources, eip, instances, 0, attributes, public_ip ] }
@@ -86,9 +86,3 @@ node_templates:
           implementation: keys.cloudify_ssh_key.operations.create
           inputs:
             store_private_key_material: true
-
-outputs:
-
-  application_endpoint:
-   description: The external endpoint of the application.
-   value: { concat: [ 'http://', { get_attribute: [ vm, ip ] } ] }
