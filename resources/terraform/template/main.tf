@@ -119,7 +119,7 @@ resource "openstack_compute_instance_v2" "example_vm" {
   name = "example_vm"
   image_id = var.image_id
   flavor_id = var.flavor_id
-  security_groups = [openstack_networking_secgroup_v2.example_security_group.name]
+  security_groups = [openstack_networking_secgroup_v2.example_security_group.id]
 
   network {
     port = openstack_networking_port_v2.example_port.id
