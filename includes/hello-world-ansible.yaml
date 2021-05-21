@@ -2,9 +2,9 @@ tosca_definitions_version: cloudify_dsl_1_3
 
 
 imports:
- - plugin:cloudify-ansible-plugin?version==2.10.1
+  - plugin:cloudify-ansible-plugin
 
-
+  
 description: Installs NGINX with Ansible.
 
 
