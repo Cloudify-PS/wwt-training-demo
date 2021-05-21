@@ -5,6 +5,10 @@ terraform {
       source  = "terraform-provider-openstack/openstack"
       version = "~> 1.35.0"
     }
+    template = {
+      source = "hashicorp/template"
+      version = "2.1.2"
+    }
   }
 }
 
@@ -40,6 +44,7 @@ resource "openstack_networking_subnet_v2" "example_subnet" {
   name              = var.subnet_id
   network_id        = openstack_networking_network_v2.example_network.id
   cidr              = "10.10.4.0/24"
+  dns_nameservers   = ["8.8.8.8"]
 }
 
 resource "openstack_networking_router_interface_v2" "example_subnet_router_interface" {
@@ -120,5 +125,5 @@ resource "openstack_compute_instance_v2" "example_vm" {
     port = openstack_networking_port_v2.example_port.id
   }
 
-  user_data =   data.template_file.template.rendered
+  user_data = data.template_file.template.rendered
 }

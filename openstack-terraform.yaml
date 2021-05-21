@@ -1,14 +1,18 @@
 tosca_definitions_version: cloudify_dsl_1_3
 
+
 description: >
-  This blueprint creates infrastructure on AWS using Terraform.
+  This blueprint creates infrastructure on OpenStack using Terraform.
   Then runs ansible playbook that installs an application on top of it.
+
+
 imports:
   - https://cloudify.co/spec/cloudify/5.1.0/types.yaml
   - plugin:cloudify-terraform-plugin?version= >=0.15.0
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-ansible-plugin
   - includes/hello-world-ansible.yaml
+
 
 inputs:
 
@@ -25,18 +29,22 @@ inputs:
   external_network_id:
     type: string
     description: A network that provisions floating IPs.
+    default: { get_secret: external_network_name }
 
   external_router_id:
     type: string
     description: A router that provisions internet access.
+    default: { get_secret: router_name }
 
   image_id:
     type: string
     description: The UUID of an Ubuntu Trusty 14.04 image in your Openstack account.
+    default: { get_secret: ubuntu_trusty_image }
 
   flavor_id:
     type: string
     description: The UUID of small flavor in your Openstack account.
+    default: { get_secret: small_image_flavor }
 
   network_id:
     type: string
@@ -55,6 +63,7 @@ node_templates:
     type: cloudify.nodes.terraform
     properties:
       resource_config:
+        installation_source: https://releases.hashicorp.com/terraform/0.14.6/terraform_0.14.6_linux_amd64.zip
         use_existing_resource: false
 
   vm:
@@ -68,12 +77,13 @@ node_templates:
           openstack_password: { get_secret: openstack_password }
           openstack_tenant_name: { get_secret: openstack_tenant_name }
           openstack_auth_url: { get_secret: openstack_auth_url }
-          openstack_region: { get_secret: openstack_region }
-          openstack_user_domain_name: { get_secret: openstack_user_domain_name }
-          openstack_project_domain_name: { get_secret: openstack_project_domain_name }
+          openstack_region: { get_secret: region }
+          openstack_user_domain_name: default
+          openstack_project_domain_name: default
           external_network_id: { get_input: external_network_id }
-          router_id: { get_input: external_router }
+          router_id: { get_input: external_router_id }
           network_id: { get_input: network_id }
+          subnet_id: { get_input: subnet_id }
           image_id: { get_input: image_id }
           flavor_id: { get_input: flavor_id }
           admin_user: { get_input: agent_user }
@@ -89,7 +99,7 @@ node_templates:
           implementation: scripts/expose_ip.py
           executor: central_deployment_agent
           inputs:
-            ip: { get_attribute: [ SELF, resources, eip, instances, 0, attributes, public_ip ] }
+            ip: { get_attribute: [ SELF, resources, ip, instances, 0, attributes, address ] }
 
   agent_key:
     type: cloudify.keys.nodes.RSAKey
