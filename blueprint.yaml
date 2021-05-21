@@ -10,8 +10,6 @@ imports:
   - https://cloudify.co/spec/cloudify/5.1.0/types.yaml
   - plugin:cloudify-terraform-plugin?version= >=0.15.0
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
-  - plugin:cloudify-ansible-plugin
-  - includes/hello-world-ansible.yaml
 
 
 inputs:
@@ -59,6 +57,7 @@ inputs:
 
 node_templates:
 
+  # This node installs the terraform executable in version 0.14.6
   terraform:
     type: cloudify.nodes.terraform
     properties:
@@ -66,28 +65,15 @@ node_templates:
         installation_source: https://releases.hashicorp.com/terraform/0.14.6/terraform_0.14.6_linux_amd64.zip
         use_existing_resource: false
 
+  # This node creates a VM in OpenStack using the terraform module
   vm:
     type: cloudify.nodes.terraform.Module
     properties:
       resource_config:
         source:
-          location: resources/terraform/template.zip
+          location: # PUT THE TERRAFORM MODULE ZIP ARCHIVE LOCATION HERE
         variables:
-          openstack_username: { get_secret: openstack_username }
-          openstack_password: { get_secret: openstack_password }
-          openstack_tenant_name: { get_secret: openstack_tenant_name }
-          openstack_auth_url: { get_secret: openstack_auth_url }
-          openstack_region: { get_secret: region }
-          openstack_user_domain_name: default
-          openstack_project_domain_name: default
-          external_network_id: { get_input: external_network_id }
-          router_id: { get_input: external_router_id }
-          network_id: { get_input: network_id }
-          subnet_id: { get_input: subnet_id }
-          image_id: { get_input: image_id }
-          flavor_id: { get_input: flavor_id }
-          admin_user: { get_input: agent_user }
-          admin_key_public: { get_attribute: [agent_key, public_key_export] }
+          # PUT THE VARIABLES DICTIONARY HERE
     relationships:
       - target: terraform
         type: cloudify.terraform.relationships.run_on_host
@@ -96,11 +82,13 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         poststart:
+          # This script copies the ip address to the higher level of runtime props - just for convenience
           implementation: scripts/expose_ip.py
           executor: central_deployment_agent
           inputs:
             ip: { get_attribute: [ SELF, resources, ip, instances, 0, attributes, address ] }
 
+  # This node creates an RSA key for the VM, if it doesn't exist in secrets store yet
   agent_key:
     type: cloudify.keys.nodes.RSAKey
     properties:
