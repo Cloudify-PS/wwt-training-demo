@@ -15,6 +15,9 @@ node_templates:
 
   hello-world:
     type: cloudify.nodes.ansible.Playbook
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        poststart: {}
     relationships:
       - type: cloudify.ansible.relationships.run_on_host
         target: vm
