@@ -42,10 +42,6 @@ variable "external_network_id" {
   type = string
 }
 
-variable "router_id" {
-  type = string
-}
-
 variable "network_id" {
   type = string
 }
