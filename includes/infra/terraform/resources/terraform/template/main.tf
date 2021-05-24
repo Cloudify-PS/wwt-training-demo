@@ -29,27 +29,15 @@ data "openstack_networking_network_v2" "external_network" {
   external        = "true"
 }
 
-data "openstack_networking_router_v2" "example_router" {
-  name = var.router_id
-}
-
-# Create a network
-resource "openstack_networking_network_v2" "example_network" {
+# Fetch a private network
+data "openstack_networking_network_v2" "example_network" {
   name            = var.network_id
-  admin_state_up  = "true"
 }
 
-# Create a subnet to launch our instances into
-resource "openstack_networking_subnet_v2" "example_subnet" {
+# Fetch a subnet to launch our instances into
+data "openstack_networking_subnet_v2" "example_subnet" {
   name              = var.subnet_id
-  network_id        = openstack_networking_network_v2.example_network.id
-  cidr              = "10.10.4.0/24"
-  dns_nameservers   = ["8.8.8.8"]
-}
-
-resource "openstack_networking_router_interface_v2" "example_subnet_router_interface" {
-  router_id = data.openstack_networking_router_v2.example_router.id
-  subnet_id = openstack_networking_subnet_v2.example_subnet.id
+  network_id        = data.openstack_networking_network_v2.example_network.id
 }
 
 # Security group for our application.
@@ -80,11 +68,11 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_http" {
 
 resource "openstack_networking_port_v2" "example_port" {
   name           = "example_port"
-  network_id     = openstack_networking_network_v2.example_network.id
+  network_id     = data.openstack_networking_network_v2.example_network.id
   admin_state_up = "true"
   
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.example_subnet.id
+    subnet_id = data.openstack_networking_subnet_v2.example_subnet.id
   }
 
   security_group_ids = [openstack_networking_secgroup_v2.example_security_group.id]

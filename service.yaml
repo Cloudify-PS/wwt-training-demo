@@ -36,11 +36,6 @@ inputs:
     description: A network that provisions floating IPs.
     default: { get_secret: external_network_name }
 
-  external_router_id:
-    type: string
-    description: A router that provisions internet access.
-    default: { get_secret: router_name }
-
   image_id:
     type: string
     description: The UUID of an Ubuntu Trusty 14.04 image in your Openstack account.
@@ -54,12 +49,12 @@ inputs:
   network_id:
     type: string
     description: A name for your new Openstack Network.
-    default: cloudify-hello-world-network
+    default: { get_secret: public_network_name }
 
   subnet_id:
     type: string
     description: A name for your new Openstack Subnet.
-    default: cloudify-hello-world-subnet
+    default: { get_secret: public_subnet_name }
 
 
 node_templates:
@@ -75,7 +70,6 @@ node_templates:
           auto_inc_suffix: true
           inputs:
             external_network_id: { get_input: external_network_id }
-            external_router_id: { get_input: external_router_id }
             network_id: { get_input: network_id }
             subnet_id: { get_input: subnet_id }
             image_id: { get_input: image_id }
