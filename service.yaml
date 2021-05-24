@@ -14,12 +14,7 @@ imports:
 
 inputs:
 
-  infrastructure_blueprint_id:
-    type: string
-    default: openstack-terraform-infra
-    constraints:
-      - valid_values:
-        - openstack-terraform-infra
+  # PUT MISSING INPUT HERE
 
   agent_user:
     description: >
@@ -63,19 +58,7 @@ node_templates:
     type: cloudify.nodes.ServiceComponent
     properties:
       resource_config:
-        blueprint:
-          id: { get_input: infrastructure_blueprint_id }
-          external_resource: true
-        deployment:
-          auto_inc_suffix: true
-          inputs:
-            external_network_id: { get_input: external_network_id }
-            network_id: { get_input: network_id }
-            subnet_id: { get_input: subnet_id }
-            image_id: { get_input: image_id }
-            flavor_id: { get_input: flavor_id }
-            agent_user: { get_input: agent_user }
-            agent_key_name: { get_input: agent_key_name }
+        # FILL THE RESOURCE CONFIG CORRECTLY
 
 
 groups:
