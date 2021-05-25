@@ -16,11 +16,6 @@ inputs:
 
   infrastructure_blueprint_id:
     type: string
-    default: openstack-terraform-infra
-    constraints:
-      - valid_values:
-        - openstack-infra
-        - openstack-terraform-infra
 
   agent_user:
     description: >
