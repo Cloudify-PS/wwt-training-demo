@@ -38,6 +38,9 @@ node_templates:
       playbook_path: resources/ansible/start.yaml
       run_data:
         IP: { get_property: [vm, ip] }
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        poststart: {}
     relationships:
       - type: cloudify.ansible.relationships.run_on_host
         target: vm
