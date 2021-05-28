@@ -55,11 +55,19 @@ node_templates:
     properties:
       client_config: *client_config
       resource_config:
-        KeyName: { get_input: agent_key_name }
+        KeyName: { get_attribute: [agent_key, node_instance_id] }
         PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
     relationships:
       - type: cloudify.relationships.depends_on
         target: agent_key
+
+  stackname_generator:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          executor: central_deployment_agent
+          implementation: scripts/generate_name.py
 
   vm:
     type: cloudify.nodes.aws.CloudFormation.Stack
@@ -67,23 +75,24 @@ node_templates:
       client_config: *client_config
       resource_config:
         kwargs:
-          StackName: Hello-World-Sample-Stack
+          StackName: { get_attribute: [stackname_generator, stackname] }
           Parameters:
           - ParameterKey: InstanceType
             ParameterValue: m1.small
           - ParameterKey: KeyName
-            ParameterValue: { get_input: agent_key_name }
+            ParameterValue: { get_attribute: [agent_key, node_instance_id] }
           - ParameterKey: VpcCIDR
             ParameterValue: 10.10.0.0/16
           - ParameterKey: SubnetCIDR
             ParameterValue: 10.10.4.0/24
           - ParameterKey: AvailabilityZone
             ParameterValue: { get_input: aws_zone_name }
-          # TemplateURL: https://hello-world-cf-example.s3-eu-west-1.amazonaws.com/template.yaml
           TemplateBody: { get_secret: hello-world-cf-example-template }
     relationships:
       - type: cloudify.relationships.depends_on
         target: hello_world_keypair
+      - type: cloudify.relationships.depends_on
+        target: stackname_generator
     interfaces:
       cloudify.interfaces.lifecycle:
         poststart:

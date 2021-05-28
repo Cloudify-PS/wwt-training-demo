@@ -59,6 +59,7 @@ node_templates:
           id: { get_input: infrastructure_blueprint_id }
           external_resource: true
         deployment:
+          id: { get_input: infrastructure_blueprint_id }
           auto_inc_suffix: true
           inputs:
             agent_user: { get_input: agent_user }
